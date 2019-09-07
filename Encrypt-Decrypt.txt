@@ -1,0 +1,77 @@
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.OpenSsl;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto.Encodings;
+using Org.BouncyCastle.Crypto.Engines;
+using System;
+using System.IO;
+using System.Text;
+
+
+namespace Encrypt_Decrypt
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //Declaring Variables
+            string EncodeText;
+            byte[] GetByte; //Because the use of ASCII Encoding
+
+            //Enter Text
+            Console.WriteLine("Please enter the text you want to encode:");
+            EncodeText = Console.ReadLine();
+
+            //Get the bytes of the text to be Encoded
+            GetByte = ASCIIEncoding.ASCII.GetBytes(EncodeText);
+            Console.WriteLine(" ");
+            Console.WriteLine("Please wait for a few moments.");
+            Console.WriteLine(" ");
+
+            //The KeyPairGenerator class is used to generate pairs of public and private keys.
+            RsaKeyPairGenerator RsaKeyPairGen = new RsaKeyPairGenerator();
+            RsaKeyPairGen.Init(new Org.BouncyCastle.Crypto.KeyGenerationParameters(new SecureRandom(), 2848));
+            AsymmetricCipherKeyPair keyPair = RsaKeyPairGen.GenerateKeyPair();
+            RsaKeyParameters PrivateKey = (RsaKeyParameters)keyPair.Private;
+            RsaKeyParameters PublicKey = (RsaKeyParameters)keyPair.Public;
+
+            //To display the public key
+            TextWriter textWriter1 = new StringWriter();
+            PemWriter pemWriter1 = new PemWriter(textWriter1);
+            pemWriter1.WriteObject(PublicKey);
+            pemWriter1.Writer.Flush();
+            string print_publicKey = textWriter1.ToString();
+            Console.WriteLine("Public key is: ");
+            Console.WriteLine("");
+            Console.WriteLine(print_publicKey);
+
+            //Encryption Process using Assymmetric Encryption
+            IAsymmetricBlockCipher encode = new OaepEncoding(new RsaEngine());
+            encode.Init(true, PublicKey);
+            byte[] ciphertext = encode.ProcessBlock(GetByte, 0, GetByte.Length);
+            string EncodedText = Encoding.UTF8.GetString(ciphertext);
+            Console.WriteLine();
+            Console.WriteLine();
+
+            //Calling the method decrypt to decrypt the text
+            Decrypt(ciphertext, PrivateKey);
+        }       
+
+
+
+
+
+ static void Decrypt(byte[] ct, RsaKeyParameters PvtKey)
+        {
+            IAsymmetricBlockCipher DecryptText = new OaepEncoding(new RsaEngine());
+            DecryptText.Init(false, PvtKey);
+            byte[] GetDecrypt = DecryptText.ProcessBlock(ct, 0, ct.Length);
+            string decryptedText = Encoding.UTF8.GetString(GetDecrypt);
+            Console.WriteLine("Decrypted text: ");
+            Console.WriteLine(decryptedText);
+
+            //Prevent the console application from closing before Enter button is pressed
+            Console.ReadKey();
+        }
